@@ -1,32 +1,54 @@
+import { Routes, Route } from "react-router-dom";
 import { useState, useEffect } from "react";
 import "./App.css";
-import Movie from "./components/Movie";
+// import axios from "axios";
+import { useDispatch } from "react-redux";
+import getMovies from "./store/actions/movies";
+import Header from "./components/Header";
+import Movies from "./components/Movies";
+import Favorites from "./components/Favorites";
+import MovieDetails from "./components/MovieDetails";
+import Error from "./components/Error";
+import LanguageContext from "./context/language";
+import SearchContext from "./context/search";
 
 const FEATURED_API =
-  "https://api.themoviedb.org/3/discover/movie?sort_by=popularity.desc&&api_key=fa850c6679d86dbe6ace698462bf066b";
+  "https://api.themoviedb.org/3/movie/popular?api_key=fa850c6679d86dbe6ace698462bf066b";
 const SEARCH_API =
   "https://api.themoviedb.org/3/search/movie?api_key=fa850c6679d86dbe6ace698462bf066b&query=";
 
 function App() {
-  const [movies, setMovies] = useState([]);
+  // const [movies, setMovies] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const getMovies = (API) => {
-    fetch(API)
-      .then((res) => res.json())
-      .then((data) => {
-        console.log(data);
-        setMovies(data.results);
-      });
-  };
+  const [contextLang, setContextLang] = useState("en");
+
+  const dispatch = useDispatch();
+
+  // const getMovies = (API, page, language) => {
+  //   if (page <= 0) {
+  //     return;
+  //   }
+  //   axios
+  //     .get(API, { params: { page: page, language } })
+
+  //     .then((res) => {
+  //       console.log(res.data);
+  //       setMovies(res.data.results);
+  //     })
+  //     .catch((error) => console.log(error));
+  // };
   useEffect(() => {
-    getMovies(FEATURED_API);
-  }, []);
+    dispatch(getMovies({ API: FEATURED_API, language: contextLang }));
+  }, [contextLang, dispatch]);
 
   const handleOnSubmit = (e) => {
     e.preventDefault();
     if (searchTerm) {
-      getMovies(SEARCH_API + searchTerm);
-      setSearchTerm("");
+      dispatch(
+        getMovies({ API: SEARCH_API + searchTerm, language: contextLang })
+      );
+    } else {
+      dispatch(getMovies({ API: FEATURED_API, language: contextLang }));
     }
   };
   const handleOnChange = (e) => {
@@ -34,21 +56,29 @@ function App() {
   };
   return (
     <>
-      <header>
-        <form onSubmit={handleOnSubmit}>
-          <input
-            className="search"
-            type="search"
-            placeholder="Search..."
-            value={searchTerm}
-            onChange={handleOnChange}
+      <LanguageContext.Provider value={{ contextLang, setContextLang }}>
+        <SearchContext.Provider value={{ searchTerm, setSearchTerm }}>
+          <Header
+            handleOnSubmit={handleOnSubmit}
+            searchTerm={searchTerm}
+            handleOnChange={handleOnChange}
           />
-        </form>
-      </header>
-      <div className="movie-container">
-        {movies.length > 0 &&
-          movies.map((movie) => <Movie key={movie.id} {...movie} />)}
-      </div>
+          <Routes>
+            <Route path="/" element={<Movies />}>
+              {" "}
+            </Route>
+            <Route path="/favorites" element={<Favorites />}>
+              {" "}
+            </Route>
+            <Route path="/movies/:id" element={<MovieDetails />}>
+              {" "}
+            </Route>
+            <Route path="*" element={<Error />}>
+              {" "}
+            </Route>
+          </Routes>
+        </SearchContext.Provider>
+      </LanguageContext.Provider>
     </>
   );
 }
